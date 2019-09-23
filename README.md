@@ -12,7 +12,7 @@ Home Assistant: DawonDNS Component
        $ cd custom_components
        $ git clone https://github.com/gugu927/dawon.git dawon
 
-2. HA설치폴더 `~/.homeassistant` 혹은 `~/config` 폴더 내 switch.yaml 에 아래 내용을 추가합니다.
+2. HA설치폴더 `~/.homeassistant` 혹은 `~/config` 폴더 내 `switch.yaml` 에 아래 내용을 추가합니다.
 
        - platform: dawon
          user_id: '다원DNS 계정 ID'
