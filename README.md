@@ -14,13 +14,13 @@ Home Assistant: DawonDNS Component
 
 2. HA설치폴더 `~/.homeassistant` 혹은 `~/config` 폴더 내 switch.yaml 에 아래 내용을 추가합니다.
 
-       platform: dawon
-       user_id: '다원DNS 계정 ID'
-       user_account: '다원DNS 계정 google 혹은 kakako'
-       scan_interval : 60
-       device_list:
-         'DAWONDNS-B530_W-xxxxxxxxxxxx'
-         'DAWONDNS-B530_W-yyyyyyyyyyy'
+       - platform: dawon
+         user_id: '다원DNS 계정 ID'
+         user_account: '다원DNS 계정 google 혹은 kakako'
+         scan_interval : 60
+         device_list:
+           - 'DAWONDNS-B530_W-xxxxxxxxxxxx'
+           - 'DAWONDNS-B530_W-yyyyyyyyyyy'
 
 Credits
 -------
