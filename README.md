@@ -23,6 +23,7 @@ Home Assistant: DawonDNS Component (v.0.0.2)
            - 'DAWONDNS-B530_W-yyyyyyyyyyy'
 
 패치노트:
+
        0.0.1:
        - 다원DNS B530_W Component
        0.0.2:
