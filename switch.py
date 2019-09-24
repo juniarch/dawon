@@ -6,18 +6,14 @@ import urllib
 import voluptuous as vol
 import homeassistant.helpers.config_validation as cv
 
-from datetime import datetime, timedelta
 from homeassistant.core import callback
 from homeassistant.components.switch import PLATFORM_SCHEMA, SwitchDevice
 from homeassistant.const import (CONF_NAME)
 from homeassistant.exceptions import PlatformNotReady
 from homeassistant.helpers.entity import Entity
 from homeassistant.util.json import load_json, save_json
-from homeassistant.util import Throttle
 
-_CONFIGURING = {}
 _LOGGER = logging.getLogger(__name__)
-
 
 CONF_USER_ID ='user_id'
 CONF_ACCOUNT='user_account'
@@ -26,15 +22,15 @@ CONF_DEVICE_LIST = 'device_list'
 ATTR_CURRENT_CONSUMPTION = 'current_consumption'
 ATTR_CURRENT_CONSUMPTION_UNIT = 'current_consumption_unit'
 ATTR_CURRENT_CONSUMPTION_UNIT_VALUE = 'w'
-ATTR_TODAY_CONSUMPTION = 'today_consumption'
-ATTR_TODAY_CONSUMPTION_UNIT = 'today_consumption_unit'
-ATTR_TODAY_CONSUMPTION_UNIT_VALUE = 'wh'
-
+ATTR_TODAY_CONSUMPTION = 'monthly_consumption'
+ATTR_TODAY_CONSUMPTION_UNIT = 'monthly_consumption_unit'
+ATTR_TODAY_CONSUMPTION_UNIT_VALUE = 'kWh'
 
 ATTR_SSO_TOKEN='hi9oIIvbTdhlu69mMVXeI'
 ATTR_FCM_TOKEN='AAAAOuAULGYR+pepTchrN'
 ATTR_TERMINAL_ID='1234567890'
 TIMEOUT=5
+
 DAWON_API_URL='https://dwapi.dawonai.com:18443'
 DAWON_CONFIG_FILE = 'dawon.conf'
 DAWON_EMAIL='none'
@@ -42,13 +38,13 @@ DAWON_NAME='none'
 
 DEFAULT_NAME = 'Dawon'
 DEFAULT_ACCOUNT = 'google'
+DEFALUT_ICON = 'mdi:power-socket-eu'
 
 DEPENDENCIES = ['http']
-SCAN_INTERVAL = timedelta(seconds=300)
 
 _MON_COND = {
-    'value_watt': ['Watt', 'Usage', 'W', 'mdi:pulse', 'watt'],
-    'value_watth': ['WattHour', 'Usage', 'W', 'mdi:pulse', 'watt_hour'],
+    'value_watt': ['Watt', 'Usage', 'w', 'mdi:pulse', 'watt'],
+    'value_watth': ['WattMonth', 'Usage', 'kWh', 'mdi:pulse', 'watt_month'],
     'conn_status': ['Connection', 'State', '', 'mdi:power-socket-eu', 'connection']
 }
 
@@ -159,12 +155,20 @@ class DawonAPI:
 
         # 세션이 정상일 경우
         if self.check_session(response):
-            state = 'on' if response.json()['devices'][0]['device_profile']['power'] == 'true' else 'off'
+            try:
+                state = 'on' if response.json()['devices'][0]['device_profile']['power'] == 'true' else 'off'
+            except:
+                state = 'off'
+                pass
         # 휴대폰 앱에 로그인이 되어있는 경우 or 세션이 만료된 경우
         if response.status_code == 500 or not self.check_session(response):
             header = self.login_session()
             response = self.request_api(url, header, payload)
-            state = 'on' if response.json()['devices'][0]['device_profile']['power'] == 'true' else 'off'
+            try:
+                state = 'on' if response.json()['devices'][0]['device_profile']['power'] == 'true' else 'off'
+            except:
+                state = 'off'
+                pass
         _LOGGER.debug('state : %s', state)
         return True if state == 'on' else False
 
@@ -215,7 +219,6 @@ class DawonAPI:
     def get_value(self, device_id):
         return self._value[device_id]
 
-
 class DawonSwitch(SwitchDevice):
     """Representation of a Dawon Switch."""
 
@@ -224,14 +227,26 @@ class DawonSwitch(SwitchDevice):
         self.client = client
         self.device = device
         self._is_on = True if client.get_status(device) else False
-        self._current_watt = 0.0
-        self._today_watt = 0.0
+        self._current_watt = 0.00
+        self._month_watt = 0.00
         self._connection = 0
+        self._device_id = device.split('-')[2]
+        self._device_model = device.split('-')[1]
+
+    @property
+    def entity_id(self):
+        """Return the entity ID."""
+        return 'switch.dawondns_{}_{}'.format(self._device_model.lower(), self._device_id)
 
     @property
     def name(self):
         """Name of the device."""
-        return '{}'.format(self.device)
+        return '{} {}'.format(self._device_model, self._device_id)
+
+    @property
+    def icon(self):
+        """Icon to use in the frontend, if any."""
+        return DEFALUT_ICON
 
     @property
     def is_on(self):
@@ -265,13 +280,15 @@ class DawonSwitch(SwitchDevice):
         attrs = {}
         if self.result:
             self._current_watt = float(self.result["value_watt"])
-            self._today_watt = float(self.result["value_watth"])
+            self._month_watt = float(self.result["value_watth"])
             self._connection = self.result["conn_status"]
 
-        attrs[ATTR_CURRENT_CONSUMPTION] = "{:.1f}".format(self._current_watt)
+        attrs[ATTR_CURRENT_CONSUMPTION] = "{:,.2f}".format(self._current_watt)
         attrs[ATTR_CURRENT_CONSUMPTION_UNIT] = "{}".format(ATTR_CURRENT_CONSUMPTION_UNIT_VALUE)
-        attrs[ATTR_TODAY_CONSUMPTION] = "{:.1f}".format(float(self._today_watt))
+        attrs[ATTR_TODAY_CONSUMPTION] = "{:,.2f}".format(float(self._month_watt))
         attrs[ATTR_TODAY_CONSUMPTION_UNIT] = "{}".format(ATTR_TODAY_CONSUMPTION_UNIT_VALUE)
+        attrs['model'] = "{}".format(self._device_model)
+        attrs['id'] = "{}".format(self._device_id)
         attrs['connection'] = 'connected' if self._connection == '1' else 'disconnected'
         return attrs
 
@@ -295,16 +312,17 @@ class DawonSensor(Entity):
         self.var_units = variable_info[2]
         self.var_icon = variable_info[3]
         self._device_id = device.split('-')[2]
+        self._device_model = device.split('-')[1]
 
     @property
     def entity_id(self):
         """Return the entity ID."""
-        return 'sensor.dawondns_{}_{}'.format(self._device_id, self.var_entity)
+        return 'sensor.dawondns_{}_{}_{}'.format(self._device_model.lower(), self._device_id, self.var_entity)
 
     @property
     def name(self):
         """Return the name of the sensor, if any."""
-        return 'DawonDNS-{} {}'.format(self._device_id, self.var_period)
+        return '{} {}({})'.format(self._device_model, self.var_period, self._device_id)
 
     @property
     def icon(self):
@@ -322,8 +340,8 @@ class DawonSensor(Entity):
         return {
             'name': self._device,
             'manufacturer': 'DAWONDNS',
-            'model': 'DAWONDNS-B530',
-            'sw_version': '0.0.1',
+            'model': self._device_model,
+            'sw_version': '0.0.2',
         }
 
 class DawonCurrentSensor(DawonSensor):
@@ -334,25 +352,41 @@ class DawonCurrentSensor(DawonSensor):
         super().__init__(device, variable, variable_info)
         self.client = client
         self.result = {}
+        self._power = 'false'
+        self._current_watt = 0.00
+        self._month_watt = 0.00
+        self._connection = 0
 
     @property
     def state(self):
         """Return the state of the sensor."""
-        if self.var_id == 'value_watt' or self.var_id == 'value_watth':
-            value = round(float(self.result[self.var_id]),1)
+        if self.var_id == 'value_watt':
+            value ="{:,.2f}".format(self._current_watt) if self._power == 'true' else "{:,.2f}".format(0.00)
+            return value
+        if self.var_id == 'value_watth':
+            value = "{:,.2f}".format(self._month_watt)
             return value
         if self.var_id == 'conn_status':
-            return 'on' if self.result[self.var_id] == '1' else 'off'
+            return 'on' if self._connection == '1' else 'off'
         return self.result[self.var_id]
 
     @property
     def device_state_attributes(self):
         """Return the device state attributes."""
         return {
-            'name': self._device
+            'model': self._device_model,
+            'id': self._device_id
         }
 
     def update(self):
         """Update function for updating api information."""
         if self.result is not None:
             self.result = self.client.get_value(self._device)
+            if "value_watt" in self.result:
+                self._current_watt = float(self.result["value_watt"])
+            if "value_watth" in self.result:
+                self._month_watt = float(self.result["value_watth"])
+            if "conn_status" in self.result:
+                self._connection = self.result["conn_status"]
+            if "value_power" in self.result:
+                self._power = self.result["value_power"]
