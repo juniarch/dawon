@@ -1,4 +1,4 @@
-Home Assistant: DawonDNS Component 
+Home Assistant: DawonDNS Component (v.0.0.2)
 =======================================
 
 이 Component는 [Home Assistant][hass] 에서 DawonDNS WiFi 플러그를 제어합니다.
@@ -21,6 +21,17 @@ Home Assistant: DawonDNS Component
          device_list:
            - 'DAWONDNS-B530_W-xxxxxxxxxxxx'
            - 'DAWONDNS-B530_W-yyyyyyyyyyy'
+
+패치노트:
+       0.0.1:
+       - 다원DNS B530_W Component
+       0.0.2:
+       - 전력량 상태값 소수점 2자리 까지 표기되도록 수정
+       - 누적사용량 표시단위 수정(W -> kWh)
+       - 스위치 기본아이콘 설정(mdi:power-socket-eu)
+       - 스위치 off 시 현재 전력량 0.00으로 즉시 변경
+       - 센서류 entity_id 수정
+
 
 Credits
 -------
