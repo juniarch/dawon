@@ -94,12 +94,13 @@ class DawonAPI:
 
     def request_api(self, url, header, payload):
         url = DAWON_API_URL + url
-        header = {'X-Requested-With': 'XMLHttpRequest',\
-                'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8',
-                'Cookie': 'SESSION=' + header}
-        body = urllib.parse.urlencode(payload)
-        response = requests.post(url, headers=header, data=body, timeout=TIMEOUT)
-        return response
+        if type(header) == str:
+            header = {'X-Requested-With': 'XMLHttpRequest',\
+                    'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8',
+                    'Cookie': 'SESSION=' + header}
+            body = urllib.parse.urlencode(payload)
+            response = requests.post(url, headers=header, data=body, timeout=TIMEOUT)
+            return response
 
     def get_session(self):
         import os
