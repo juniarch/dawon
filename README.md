@@ -16,7 +16,7 @@ Home Assistant: DawonDNS Component (v.0.0.2)
 
        - platform: dawon
          user_id: '다원DNS 계정 ID'
-         user_account: '다원DNS 계정 google 혹은 kakako'
+         user_account: 'google, kakako 또는 naver 등'
          scan_interval : 60
          device_list:
            - 'DAWONDNS-B530_W-xxxxxxxxxxxx'
@@ -32,6 +32,8 @@ Home Assistant: DawonDNS Component (v.0.0.2)
        - 스위치 기본아이콘 설정(mdi:power-socket-eu)
        - 스위치 off 시 현재 전력량 0.00으로 즉시 변경
        - 센서류 entity_id 수정
+       0.0.3:
+       - header관련 오류 수정
 
 
 Credits
