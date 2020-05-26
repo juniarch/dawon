@@ -1,4 +1,4 @@
-Home Assistant: DawonDNS Component (v.0.0.3)
+Home Assistant: DawonDNS Component (v.0.0.4)
 =======================================
 
 이 Component는 [Home Assistant][hass] 에서 DawonDNS WiFi 플러그를 제어합니다.
@@ -34,6 +34,8 @@ Home Assistant: DawonDNS Component (v.0.0.3)
        - 센서류 entity_id 수정
        0.0.3:
        - header관련 오류 수정
+       0.0.4:
+       - 0.110 
 
 
 Credits
