@@ -7,7 +7,7 @@ import voluptuous as vol
 import homeassistant.helpers.config_validation as cv
 
 from homeassistant.core import callback
-from homeassistant.components.switch import PLATFORM_SCHEMA, SwitchDevice
+from homeassistant.components.switch import PLATFORM_SCHEMA, SwitchEntity
 from homeassistant.const import (CONF_NAME)
 from homeassistant.exceptions import PlatformNotReady
 from homeassistant.helpers.entity import Entity
@@ -185,7 +185,7 @@ class DawonAPI:
             response = self.request_api(url, header, payload)
         
         # 제어결과
-        if 'execute success' in response.text:
+        if 'text' in response and 'execute success' in response.text:
             _LOGGER.debug('command : %s', command)
             return True
         return False
@@ -220,7 +220,7 @@ class DawonAPI:
     def get_value(self, device_id):
         return self._value[device_id]
 
-class DawonSwitch(SwitchDevice):
+class DawonSwitch(SwitchEntity):
     """Representation of a Dawon Switch."""
 
     def __init__(self, client, device):
